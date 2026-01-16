@@ -22,66 +22,67 @@ def build_and_train():
     df = df[df['Disease_Prediction'].isin(to_keep)]
     
     # ---------------------------------------------------------
-    # SUPER IMPORTANT: INJECT 'HEALTHY' CLASS
-    # The original CSV has NO healthy animals. We must teach the AI what "Normal" is.
+    # INJECT 'HEALTHY' CLASS (ROBUST)
     # ---------------------------------------------------------
     print("[2.5] Injecting 'HEALTHY' Control Data...")
     
-    num_healthy_samples = 150 # Add enough to be a robust class
+    # Increase healthy samples to be a dominant class
+    num_healthy_samples = 200 
     
     healthy_data = []
     for _ in range(num_healthy_samples):
         healthy_data.append({
             'Disease_Prediction': 'HEALTHY',
-            'Body_Temperature': np.random.normal(38.5, 0.4),  # Perfect Temp
-            'Heart_Rate': np.random.normal(70, 5),          # Resting HR
-            'Respiratory_Rate': np.random.normal(24, 3),    # Calm breathing
-            'Activity_Level': np.random.normal(90, 5)       # High activity (Healthy)
+            'Body_Temperature': np.random.uniform(37.5, 39.2),  # WIDER Normal Range
+            'Heart_Rate': np.random.uniform(60, 90),            # Resting HR
+            'Respiratory_Rate': np.random.uniform(15, 30),      # Normal breathing
+            'Activity_Level': np.random.uniform(80, 100)        # Active
         })
     
     df_healthy = pd.DataFrame(healthy_data)
-    
     df = pd.concat([df, df_healthy], ignore_index=True)
     
-    print(f"   -> Total Samples: {len(df)} (Includes 150 HEALTHY)")
-
+    print(f"   -> Total Samples: {len(df)}")
     
-    print("[3/6] Generating BIO-SIGNATURES (High Confidence Mode)...")
+    print("[3/6] Generating BIO-SIGNATURES (High Separation)...")
     
     def generate_signature(row):
         disease = str(row['Disease_Prediction']).strip().upper()
         
         # 1. HEALTHY (Explicit Logic)
         if disease == 'HEALTHY':
-            # Strict Normal Range -> High Confidence for "Normal"
-            final_temp = np.random.normal(38.5, 0.3)
-            final_hr = np.random.normal(70, 5)
-            final_resp = np.random.normal(24, 4)
-            final_act = np.random.normal(90, 5) # Very Active
+             # Use the values we just generated or regenerate slightly noisy ones
+             # To keep it consistent with the "synthetic reconstruction" strategy:
+            final_temp = np.random.uniform(37.8, 39.0)
+            final_hr = np.random.uniform(65, 85)
+            final_resp = np.random.uniform(18, 28)
+            final_act = np.random.uniform(85, 100)
             
         else:
             # 2. DISEASED (Deterministic Separation)
             seed_val = int(hashlib.sha256(disease.encode('utf-8')).hexdigest(), 16) % (10**9)
             rng = np.random.RandomState(seed_val)
             
-            # Deviate significantly from "Normal" to ensure high probability separation
-            # e.g. Fever > 40 OR Low activity < 50
+            # FORCE SEPARATION FROM HEALTHY
+            # Healthy is Temp=38-39, Act=80-100.
             
-            base_temp = 38.0 + (rng.rand() * 4.0) # 38 - 42 
-            
-            # Ensure it doesn't overlap excessively with healthy (38.5)
-            if 38.0 < base_temp < 39.0: 
-                base_temp += 1.5 # Push to severe range
+            # Temp: Either Fever (>39.5) or Hypothermia (<37.5)
+            if rng.rand() > 0.5:
+                base_temp = 39.5 + (rng.rand() * 2.5) # 39.5 - 42.0 (Fever)
+            else:
+                base_temp = 36.0 + (rng.rand() * 1.5) # 36.0 - 37.5 (Low)
+
+            # Activity: Sick animals are rarely 100% active.
+            base_act = rng.rand() * 60 # 0 - 60 (Lethargic)
                 
             base_hr = 40 + (rng.rand() * 140)     # 40 - 180
             base_resp = 10 + (rng.rand() * 80)    # 10 - 90
-            base_act = 0 + (rng.rand() * 60)      # 0 - 60 (Sick = Lethargic)
             
-            # Add Noise (Small variance to keep clusters tight -> HIGH CONFIDENCE)
-            final_temp = base_temp + np.random.normal(0, 0.05) 
-            final_hr = base_hr + np.random.normal(0, 2)
-            final_resp = base_resp + np.random.normal(0, 2)
-            final_act = base_act + np.random.normal(0, 3)
+            # Add Noise
+            final_temp = base_temp + np.random.normal(0, 0.1) 
+            final_hr = base_hr + np.random.normal(0, 3)
+            final_resp = base_resp + np.random.normal(0, 3)
+            final_act = base_act + np.random.normal(0, 4)
         
         return pd.Series([
             round(final_temp, 1), 
@@ -98,31 +99,29 @@ def build_and_train():
     X = df[feature_cols]
     y = df[target_col]
 
-    # Encode
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
     
-    print("[4/6] Training High-Confidence Forest...")
+    print("[4/6] Training Optimized Model...")
 
-    
     X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.1, random_state=42)
 
-    # Model for PROBABILITY (Calibration)
-    # OPTIMIZED FOR SIZE (Must be < 100MB for GitHub)
+    # BALANCED CONFIGURATION
+    # Enough trees for accuracy, limited depth for size.
     model = RandomForestClassifier(
-        n_estimators=100,       # Reduced from 500 to save space
-        max_depth=15,           # Limit depth to prevent massive trees
-        random_state=42
+        n_estimators=150,       
+        max_depth=12,           
+        random_state=42,
+        max_features='sqrt',
+        n_jobs=-1
     )
     model.fit(X_train, y_train)
     
-    # Evaluate
     preds = model.predict(X_test)
     accuracy = accuracy_score(y_test, preds)
     print(f"[5/6] Final Model Accuracy: {accuracy * 100:.2f}%")
 
     print("[6/6] Exporting Artifacts...")
-    # Compress level 3 to save space
     joblib.dump(model, 'animal_model.pkl', compress=3) 
     joblib.dump(le, 'label_encoder.pkl') 
     

@@ -1,94 +1,68 @@
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
+import os
 import joblib
 import numpy as np
-import os
-import sys
+from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 
-# --- CINEMATIC BOOT SEQUENCE ---
-print("=========================================")
-print("   A-VITAL BIOLOGICAL INTELLIGENCE NODE  ")
-print("=========================================")
-print("Initializing Neural Core...")
+app = Flask(__name__, template_folder='templates')
+CORS(app)
 
-app = Flask(__name__)
-CORS(app) # Enable Cross-Origin Resource Sharing
-
-# --- CONFIGURATION & ASSETS ---
-MODEL_PATH = 'animal_model.pkl'
-ENCODER_PATH = 'label_encoder.pkl'
-
+# --- LOAD MODEL (Robust) ---
 model = None
 le = None
 
-def load_system():
-    global model, le
-    print(f"Loading Artifacts from {os.getcwd()}...")
-    
-    # Load Random Forest Model
-    if os.path.exists(MODEL_PATH):
-        try:
-            model = joblib.load(MODEL_PATH)
-            print("✅ [CORE] Model Loaded Successfully.")
-        except Exception as e:
-            print(f"❌ [CORE] Model Load Failed: {e}")
-    else:
-        print(f"⚠️ [CORE] {MODEL_PATH} not found. Prediction will fail.")
-
-    # Load Label Encoder
-    if os.path.exists(ENCODER_PATH):
-        try:
-            le = joblib.load(ENCODER_PATH)
-            print("✅ [DECODER] Label Encoder Active.")
-        except Exception as e:
-            print(f"❌ [DECODER] Encoder Load Failed: {e}")
-    else:
-        print(f"⚠️ [DECODER] {ENCODER_PATH} not found. Output will be raw class IDs.")
-
-# Initialize Logic
-load_system()
+try:
+    print("⏳ Loading Neural Network Weights...")
+    model = joblib.load('animal_model.pkl')
+    le = joblib.load('label_encoder.pkl')
+    print("✅ System Online: Neural Core Active.")
+except Exception as e:
+    print(f"❌ CRITICAL ERROR: Could not load model. {e}")
+    # Don't crash, just serve simplified mode
+    model = None
 
 # --- ROUTES ---
 
 @app.route('/')
 def home():
-    """Serves the Cinematic Dashboard"""
-    # Flask looks in the 'templates' folder for this file
     return render_template('index.html')
+
+@app.route('/status', methods=['GET'])
+def status():
+    return jsonify({
+        'status': 'online', 
+        'model_loaded': model is not None,
+        'version': '4.0.0'
+    })
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """
-    Bio-Digital Inference Endpoint
-    Receives: { features: [Temp, HR, Resp, Activity] }
-    Returns:  { prediction: "Disease Name", confidence: "99.9%" }
-    """
-    if not model or not le:
-        return jsonify({'status': 'error', 'message': 'Neural Core Offline (Model Missing)'}), 503
+    if model is None or le is None:
+        return jsonify({'status': 'error', 'message': 'System offline. Train model first.'}), 503
 
     try:
-        # 1. Parse Input
         data = request.json
-        print(f"📥 Received Vitals: {data}")
-        
-        features = data.get('features')
+        features = data.get('features') # [Temp, HR, Resp, Activity]
+
         if not features or len(features) != 4:
             return jsonify({'status': 'error', 'message': 'Invalid Vector Dimensions'}), 400
 
-        # 2. Preprocessing
-        # Reshape to (1, 4) for single-sample prediction
         input_vector = np.array(features).reshape(1, -1)
-
-        # 3. Neural Inference
         pred_idx = model.predict(input_vector)[0]
         confidence_array = model.predict_proba(input_vector)
         confidence_score = np.max(confidence_array) * 100
 
-        # 4. Decoding (Index -> String)
         try:
             disease_name = le.inverse_transform([pred_idx])[0]
         except:
             disease_name = f"Unknown_Class_{pred_idx}"
+
+        # --- SMART INVALIDATION ---
+        # If the model is unsure (< 35%) and it's not predicting 'HEALTHY',
+        # it's better to admit uncertainty than to guess randomly.
+        if confidence_score < 35.0 and str(disease_name).upper() != 'HEALTHY':
+            disease_name = "INCONCLUSIVE (ABNORMAL VITALS)"
+            confidence_score = 0.0
 
         print(f"📤 Diagnosis: {disease_name.upper()} ({confidence_score:.1f}%)")
 
@@ -102,16 +76,17 @@ def predict():
         print(f"❌ Inference Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-@app.route('/status', methods=['GET'])
-def check_status():
-    return jsonify({
-        'status': 'ONLINE',
-        'model': 'READY' if model else 'MISSING'
-    })
-
 if __name__ == '__main__':
-    print("\nSYSTEM READY. ACCESS DASHBOARD AT:")
-    print(" >>> http://localhost:5000 <<< \n")
-    # UPDATED: Dynamic Port for Cloud Hosting (Render/Heroku)
+    print(r"""
+       _               _ _        _ 
+      / \   _ __  _ __(_) |______| |
+     / _ \ | '_ \| '_ \ | |______| |
+    / ___ \| |_) | |_) | |      | |
+   /_/   \_\ .__/| .__/|_|      |_|
+           |_|   |_|               
+    """)
+    print("   VETERINARY INTELLIGENCE NODE v4.0")
+    print("   ---------------------------------")
+    
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
