@@ -12,12 +12,12 @@ model = None
 le = None
 
 try:
-    print("⏳ Loading Neural Network Weights...")
+    print("[*] Loading Neural Network Weights...")
     model = joblib.load('animal_model.pkl')
     le = joblib.load('label_encoder.pkl')
-    print("✅ System Online: Neural Core Active.")
+    print("[+] System Online: Neural Core Active.")
 except Exception as e:
-    print(f"❌ CRITICAL ERROR: Could not load model. {e}")
+    print(f"[!] CRITICAL ERROR: Could not load model. {e}")
     # Don't crash, just serve simplified mode
     model = None
 
@@ -64,7 +64,7 @@ def predict():
             disease_name = "INCONCLUSIVE (ABNORMAL VITALS)"
             confidence_score = 0.0
 
-        print(f"📤 Diagnosis: {disease_name.upper()} ({confidence_score:.1f}%)")
+        print(f"[>] Diagnosis: {disease_name.upper()} ({confidence_score:.1f}%)")
 
         return jsonify({
             'status': 'success',
@@ -73,7 +73,7 @@ def predict():
         })
 
     except Exception as e:
-        print(f"❌ Inference Error: {e}")
+        print(f"[!] Inference Error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
