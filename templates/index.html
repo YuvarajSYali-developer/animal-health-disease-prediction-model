@@ -424,7 +424,7 @@
                                 <div class="font-mono text-xs text-white/30 tracking-widest mb-2">DIAGNOSTIC RESULT
                                 </div>
                                 <div id="result-text"
-                                    class="font-sync text-4xl font-bold italic text-white/10 transition-all duration-500">
+                                    class="font-sync text-2xl md:text-3xl lg:text-4xl font-bold italic text-white/10 transition-all duration-500 break-words">
                                     STANDBY</div>
                             </div>
 
@@ -675,7 +675,7 @@
                 const isHealthy = ['HEALTHY', 'NORMAL', 'OK'].some(w => result.toUpperCase().includes(w));
 
                 if (isHealthy) {
-                    resText.className = "font-sync text-4xl font-bold italic text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]";
+                    resText.className = "font-sync text-2xl md:text-3xl lg:text-4xl font-bold italic text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] break-words";
                     threatVal.innerText = "LOW";
                     threatVal.className = "font-mono text-xl text-green-400";
                     sysMsg.innerText = "// SUBJECT VITALS WITHIN NOMINAL RANGE. NO PATHOGENS DETECTED.";
@@ -683,7 +683,7 @@
 
                     gsap.to(this.three.core.material.color, { r: 0, g: 1, b: 0.2, duration: 0.5 });
                 } else {
-                    resText.className = "font-sync text-4xl font-bold italic text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]";
+                    resText.className = "font-sync text-2xl md:text-3xl lg:text-4xl font-bold italic text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] break-words";
                     threatVal.innerText = "CRITICAL";
                     threatVal.className = "font-mono text-xl text-red-500 animate-pulse";
                     sysMsg.innerText = "// ANOMALY DETECTED. IMMEDIATE QUARANTINE PROTOCOLS RECOMMENDED.";
