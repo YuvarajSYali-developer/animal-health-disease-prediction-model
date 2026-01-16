@@ -600,20 +600,19 @@
                 this.log("Session terminated. Standby mode active.");
             },
 
-            // --- INFERENCE LOGIC --- //
+            // --- INFERENCE LOGIC (CONNECTED TO API) --- //
             async runInference() {
                 this.log("Initiating inference protocol...");
 
-                const inputs = {
-                    temp: document.getElementById('temp').value,
-                    hr: document.getElementById('hr').value,
-                    resp: document.getElementById('resp').value,
-                    act: document.getElementById('activity').value
-                };
+                // Collect Inputs
+                const temp = parseFloat(document.getElementById('temp').value);
+                const hr = parseFloat(document.getElementById('hr').value);
+                const resp = parseFloat(document.getElementById('resp').value);
+                const activity = parseFloat(document.getElementById('activity').value);
 
-                // Validate
-                if (Object.values(inputs).some(v => v === '')) {
-                    this.log("ERROR: Null input vectors detected.");
+                // Validation
+                if ([temp, hr, resp, activity].some(v => isNaN(v))) {
+                    this.log("ERROR: Invalid input vectors detected.");
                     return;
                 }
 
@@ -623,27 +622,37 @@
                 btn.innerText = "PROCESSING...";
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
 
-                // Visual Spin
+                // Visual Spin (Three.js)
                 gsap.to(this.three.core.scale, { x: 0.1, y: 0.1, z: 0.1, duration: 0.5, yoyo: true, repeat: 3 });
 
-                // Try to fetch, fall back to simulation
                 try {
-                    // Start Simulation Logic (Mock Mode)
-                    // We assume no backend for this demo unless explicitly connected
-                    await new Promise(r => setTimeout(r, 1500)); // Fake network delay
+                    // REAL Backend Call
+                    // We send the array [Temp, HR, Resp, Activity] to the Python API
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            features: [temp, hr, resp, activity]
+                        })
+                    });
 
-                    // Logic based on simple thresholds for demo purposes
-                    // (Mocking the Random Forest logic roughly)
-                    const isSick = (inputs.temp > 39.5 || inputs.hr > 90 || inputs.resp > 40);
-                    const result = isSick ? 'CRITICAL' : 'HEALTHY';
-                    const confidence = (85 + Math.random() * 14).toFixed(1);
+                    const data = await response.json();
 
-                    this.updateUI(result, confidence);
-                    this.log(`Inference complete. Result: ${result}`);
+                    if (data.status === 'success') {
+                        // Success: Show the real AI prediction
+                        this.updateUI(data.prediction, data.confidence);
+                        this.log(`Inference complete. Diagnosis: ${data.prediction}`);
+                    } else {
+                        // Backend Error
+                        this.log(`Diagnostic Error: ${data.message}`);
+                    }
 
                 } catch (e) {
-                    this.log("Connection error. Running local heuristic fallback.");
+                    console.error(e);
+                    this.log("CRITICAL FAILURE: Neural Node Offline.");
+                    this.log("Ensure 'app.py' server is running.");
                 } finally {
+                    // Reset Button
                     btn.innerText = origText;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
@@ -656,10 +665,16 @@
                 const sysMsg = document.getElementById('system-msg');
                 const alertBg = document.getElementById('alert-bg');
 
-                resText.innerText = result;
-                confVal.innerText = `${confidence}%`;
+                // Ensure confidence is a string with %
+                const confString = String(confidence).includes('%') ? confidence : `${confidence}`;
 
-                if (result === 'HEALTHY') {
+                resText.innerText = result;
+                confVal.innerText = confString;
+
+                // Treat 'HEALTHY' or 'NORMAL' as Good. Everything else is Bad.
+                const isHealthy = ['HEALTHY', 'NORMAL', 'OK'].some(w => result.toUpperCase().includes(w));
+
+                if (isHealthy) {
                     resText.className = "font-sync text-4xl font-bold italic text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]";
                     threatVal.innerText = "LOW";
                     threatVal.className = "font-mono text-xl text-green-400";
