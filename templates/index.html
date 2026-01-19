@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-VITAL PRO | Bio-Neural Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --deep-cyan: #007a80;
+            --neon-red: #ff0055;
+            --neon-green: #00ff9d;
+            --bg-color: #030305;
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #e0e0e0;
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* --- BACKGROUND FX --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            /* Radial Gradient Overlay */
+            background: radial-gradient(circle at 50% 50%, rgba(0, 24, 35, 0.6) 0%, rgba(3, 3, 5, 1) 90%);
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .scanline {
+            width: 100%;
+            height: 10vh;
+            background: linear-gradient(0deg, transparent 0%, rgba(0, 243, 255, 0.03) 50%, transparent 100%);
+            position: absolute;
+            z-index: 10;
+            pointer-events: none;
+            animation: scan 6s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                top: -10vh;
+            }
+
+            100% {
+                top: 110vh;
+            }
+        }
+
+        /* --- TYPOGRAPHY --- */
+        .font-sync {
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glitch-text {
+            position: relative;
+            color: white;
+        }
+
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+        }
+
+        .glitch-text::before {
+            left: 2px;
+            text-shadow: -1px 0 var(--neon-red);
+            clip: rect(24px, 550px, 90px, 0);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+
+        .glitch-text::after {
+            left: -2px;
+            text-shadow: -1px 0 var(--neon-cyan);
+            clip: rect(85px, 550px, 140px, 0);
+            animation: glitch-anim 2.5s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% {
+                clip: rect(10px, 9999px, 30px, 0);
+            }
+
+            20% {
+                clip: rect(80px, 9999px, 100px, 0);
+            }
+
+            40% {
+                clip: rect(10px, 9999px, 40px, 0);
+            }
+
+            60% {
+                clip: rect(40px, 9999px, 60px, 0);
+            }
+
+            80% {
+                clip: rect(120px, 9999px, 140px, 0);
+            }
+
+            100% {
+                clip: rect(20px, 9999px, 50px, 0);
+            }
+        }
+
+        @keyframes glitch-anim-2 {
+            0% {
+                clip: rect(120px, 9999px, 140px, 0);
+            }
+
+            20% {
+                clip: rect(20px, 9999px, 50px, 0);
+            }
+
+            40% {
+                clip: rect(10px, 9999px, 30px, 0);
+            }
+
+            60% {
+                clip: rect(40px, 9999px, 60px, 0);
+            }
+
+            80% {
+                clip: rect(80px, 9999px, 100px, 0);
+            }
+
+            100% {
+                clip: rect(10px, 9999px, 40px, 0);
+            }
+        }
+
+        /* --- UI COMPONENTS --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            opacity: 0.3;
+        }
+
+        .panel-corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 1px solid var(--neon-cyan);
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+
+        .tl {
+            top: 0;
+            left: 0;
+            border-bottom: none;
+            border-right: none;
+        }
+
+        .tr {
+            top: 0;
+            right: 0;
+            border-bottom: none;
+            border-left: none;
+        }
+
+        .bl {
+            bottom: 0;
+            left: 0;
+            border-top: none;
+            border-right: none;
+        }
+
+        .br {
+            bottom: 0;
+            right: 0;
+            border-top: none;
+            border-left: none;
+        }
+
+        .btn-cyber {
+            background: rgba(0, 243, 255, 0.05);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-weight: 700;
+            padding: 1rem 2rem;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .btn-cyber:hover {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .input-cyber {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            width: 100%;
+            padding: 0.5rem 0;
+            transition: 0.3s;
+        }
+
+        .input-cyber:focus {
+            outline: none;
+            border-bottom-color: var(--neon-cyan);
+            background: linear-gradient(0deg, rgba(0, 243, 255, 0.1), transparent);
+        }
+
+        /* View transitions */
+        .view-section {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transition: transform 1s cubic-bezier(0.7, 0, 0.3, 1);
+        }
+
+        /* --- SCROLLBAR --- */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--deep-cyan);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-cyan);
+        }
+
+        /* Dropdown Fix */
+        select option {
+            background-color: #030305;
+            color: white;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background Canvas -->
+    <div id="three-container"></div>
+    <div class="noise-overlay"></div>
+    <div class="scanline"></div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="relative w-full h-full overflow-hidden">
+
+        <!-- HEADER -->
+        <header
+            class="fixed top-0 left-0 w-full p-8 z-50 flex justify-between items-center pointer-events-none mix-blend-difference">
+            <div class="flex items-center gap-4">
+                <div class="w-2 h-2 bg-cyan-400 rotate-45"></div>
+                <h1 class="font-sync text-sm tracking-widest text-cyan-400 font-bold">A-VITAL<span
+                        class="opacity-50 font-light"> // PRO_V4.0</span></h1>
+            </div>
+            <div class="font-mono text-xs text-white/40 tracking-wider">
+                SYS_STATUS: <span class="text-green-400">ONLINE</span>
+            </div>
+        </header>
+
+        <!-- LANDING VIEW -->
+        <section id="landing-view" class="view-section flex flex-col items-center justify-center z-40">
+            <div class="text-center space-y-8 p-6 relative">
+                <!-- Decorative bracket -->
+                <div
+                    class="absolute -left-12 top-0 h-full w-[1px] bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent hidden md:block">
+                </div>
+
+                <p class="font-mono text-cyan-500 text-xs tracking-[0.5em] uppercase">Veterinary Intelligence Node</p>
+
+                <h2 class="glitch-text font-sync text-6xl md:text-8xl font-black uppercase tracking-tighter"
+                    data-text="A-VITAL">
+                    A-VITAL
+                </h2>
+
+                <p class="font-light text-white/60 max-w-lg mx-auto text-sm leading-relaxed tracking-wide">
+                    Advanced machine learning diagnostics for livestock health preservation.
+                    <br><span class="text-cyan-400/50 text-xs font-mono mt-2 block">>> INITIATE_NEURAL_LINK...</span>
+                </p>
+
+                <div class="pt-8">
+                    <button onclick="app.transitionToDashboard()" class="btn-cyber group">
+                        <span class="relative z-10 flex items-center gap-4">
+                            Initialize System
+                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- DASHBOARD VIEW -->
+        <section id="dashboard-view"
+            class="view-section translate-y-full z-30 flex items-center justify-center p-4 md:p-12">
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full max-w-7xl h-[85vh]">
+
+                <!-- INPUT PANEL -->
+                <div class="lg:col-span-3 h-full flex flex-col gap-4">
+                    <div class="glass-panel p-6 flex-1 flex flex-col overflow-y-auto custom-scroll">
+                        <div>
+                            <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                                <h3 class="font-sync text-lg text-cyan-400">INPUT Vectors</h3>
+                                <div class="w-2 h-2 bg-cyan-400 animate-pulse"></div>
+                            </div>
+
+                            <form id="prediction-form" class="space-y-6">
+
+                                <!-- SPECIES CLICKER -->
+                                <div class="input-group">
+                                    <label>Subject Species</label>
+                                    <select id="species" class="input-cyber bg-black/50"
+                                        onchange="app.updateSymptoms()">
+                                        <option value="Dog">CANINE (Dog)</option>
+                                        <option value="Cat">FELINE (Cat)</option>
+                                        <option value="Cow">BOVINE (Cow)</option>
+                                        <option value="Horse">EQUINE (Horse)</option>
+                                        <option value="Pig">PORCINE (Pig)</option>
+                                        <option value="Sheep">OVINE (Sheep)</option>
+                                        <option value="Goat">CAPRINE (Goat)</option>
+                                    </select>
+                                </div>
+
+                                <!-- VITALS -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="input-group">
+                                        <label>Temp (°C)</label>
+                                        <input type="number" id="temp" step="0.1" value="38.5" class="input-cyber">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>HR (BPM)</label>
+                                        <input type="number" id="hr" value="72" class="input-cyber">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Resp (Hz)</label>
+                                        <input type="number" id="resp" value="24" class="input-cyber">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Activity</label>
+                                        <input type="number" id="activity" value="120" class="input-cyber">
+                                    </div>
+                                </div>
+
+                                <!-- SYMPTOMS -->
+                                <div class="input-group">
+                                    <label class="mb-2 border-b border-white/10 pb-1">Observed Symptoms</label>
+                                    <div id="symptoms-grid"
+                                        class="grid grid-cols-2 gap-2 text-xs font-mono text-cyan-300/80">
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Vomiting" class="accent-cyan-400">
+                                            Vomiting
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Diarrhea" class="accent-cyan-400">
+                                            Diarrhea
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Coughing" class="accent-cyan-400">
+                                            Coughing
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Sneezing" class="accent-cyan-400">
+                                            Sneezing
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Appetite_Loss"
+                                                class="accent-cyan-400"> No Appetite
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Lethargy" class="accent-cyan-400">
+                                            Lethargy
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Lameness" class="accent-cyan-400">
+                                            Lameness
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Rolling" class="accent-cyan-400">
+                                            Rolling
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Eye_Discharge"
+                                                class="accent-cyan-400"> Eye Dschrg
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Nasal_Discharge"
+                                                class="accent-cyan-400"> Nasal Dschrg
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Skin_Lesions"
+                                                class="accent-cyan-400"> Skin Lesion
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Swelling" class="accent-cyan-400">
+                                            Swelling
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Restlessness"
+                                                class="accent-cyan-400">
+                                            Restlessness
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Sweating" class="accent-cyan-400">
+                                            Sweating
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Blisters" class="accent-cyan-400">
+                                            Blisters
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Excess_Saliva"
+                                                class="accent-cyan-400">
+                                            Excess Saliva
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Swollen_Lymph_Nodes"
+                                                class="accent-cyan-400">
+                                            Lymph Nodes
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Pustules" class="accent-cyan-400">
+                                            Pustules
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Hair_Loss" class="accent-cyan-400">
+                                            Hair Loss
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Dehydration"
+                                                class="accent-cyan-400">
+                                            Dehydration
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Bloat_Distension"
+                                                class="accent-cyan-400">
+                                            Bloat/Gas
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Resp_Distress"
+                                                class="accent-cyan-400">
+                                            Dyspnea (Hard Breath)
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Fever_Chills"
+                                                class="accent-cyan-400">
+                                            Chills/Fever
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Weight_Loss"
+                                                class="accent-cyan-400">
+                                            Weight Loss
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Pale_Gums" class="accent-cyan-400">
+                                            Pale Gums
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Jaundice" class="accent-cyan-400">
+                                            Jaundice (Yellow)
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Stiff_Joints"
+                                                class="accent-cyan-400">
+                                            Stiff Joints
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Seizures" class="accent-cyan-400">
+                                            Seizures
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Tremors" class="accent-cyan-400">
+                                            Tremors
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Uncoordinated"
+                                                class="accent-cyan-400">
+                                            Uncoordinated
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Aggression"
+                                                class="accent-cyan-400">
+                                            Aggression
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Straining_Urinate"
+                                                class="accent-cyan-400">
+                                            Straining (Urine)
+                                        </label>
+                                        <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                            <input type="checkbox" name="sym" value="Red_Urine" class="accent-cyan-400">
+                                            Red Urine
+                                        </label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <button onclick="app.runInference()" class="btn-cyber w-full mt-6 text-sm">
+                            Run Diagnostics
+                        </button>
+
+                        <!-- Panel Corners decorations -->
+                        <div class="panel-corner tl"></div>
+                        <div class="panel-corner tr"></div>
+                        <div class="panel-corner bl"></div>
+                        <div class="panel-corner br"></div>
+                    </div>
+                </div>
+
+                <!-- VISUALIZER / LOGS -->
+                <div class="lg:col-span-6 h-full relative">
+                    <!-- The 3D model is behind, this is just overlay UI -->
+                    <div class="absolute bottom-0 left-0 w-full p-4 pointer-events-none">
+                        <div id="console-log"
+                            class="font-mono text-[10px] text-cyan-300/70 h-32 overflow-hidden flex flex-col justify-end text-shadow">
+                            <div class="opacity-50">> System ready...</div>
+                            <div class="opacity-50">> Awaiting input vectors...</div>
+                        </div>
+                    </div>
+
+                    <!-- Center decorative ring -->
+                    <div
+                        class="absolute top-[42%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-cyan-500/20 rounded-full flex items-center justify-center pointer-events-none">
+                        <div
+                            class="w-[90%] h-[90%] border border-cyan-500/10 rounded-full border-dashed animate-[spin_10s_linear_infinite]">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OUTPUT PANEL -->
+                <div class="lg:col-span-3 h-full flex flex-col gap-4">
+                    <div class="glass-panel p-6 h-full relative group">
+                        <div class="absolute inset-0 bg-red-500/5 opacity-0 transition-opacity duration-300"
+                            id="alert-bg"></div>
+
+                        <div class="flex items-center justify-between mb-8 border-b border-white/10 pb-4 relative z-10">
+                            <h3 class="font-sync text-lg text-white/80">Analysis Report</h3>
+                            <button onclick="app.exitDashboard()"
+                                class="text-xs text-red-400 hover:text-white transition-colors font-mono">[ EXIT
+                                ]</button>
+                        </div>
+
+                        <div class="space-y-12 relative z-10">
+                            <div class="text-center py-4 min-h-[140px] flex flex-col justify-center">
+                                <div class="font-mono text-xs text-white/30 tracking-widest mb-2">DIAGNOSTIC RESULT
+                                </div>
+                                <div id="result-text"
+                                    class="font-sync text-2xl md:text-3xl font-bold italic text-white/10 transition-all duration-500 break-words leading-tight">
+                                    STANDBY</div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                    <span class="font-mono text-xs text-cyan-400">CONFIDENCE_LVL</span>
+                                    <span id="conf-val" class="font-mono text-xl text-white">--%</span>
+                                </div>
+                                <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                    <span class="font-mono text-xs text-cyan-400">THREAT_VECTOR</span>
+                                    <span id="threat-val" class="font-mono text-xl text-white">--</span>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-white/5 pt-4">
+                                <div class="font-mono text-[10px] text-cyan-500 mb-2">PREDICTION LOGIC (WHY?):</div>
+                                <p id="system-msg"
+                                    class="font-mono text-[10px] leading-relaxed text-left text-white/60">
+                                    // AWAITING NEURAL PROCESS EXECUTION
+                                </p>
+                            </div>
+
+                            <!-- NAVIGATION CONTROLS -->
+                            <div class="pt-4">
+                                <button onclick="app.exitDashboard()"
+                                    class="w-full btn-cyber text-[10px] py-3 hover:bg-cyan-900/30 border-cyan-800">
+                                    &lt;&lt; RETURN TO BASE
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Panel Corners decorations -->
+                        <div class="panel-corner tl border-red-500/50"></div>
+                        <div class="panel-corner tr border-red-500/50"></div>
+                        <div class="panel-corner bl border-red-500/50"></div>
+                        <div class="panel-corner br border-red-500/50"></div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+    <!-- APP LOGIC -->
+    <script>
+        const app = {
+            state: 'LANDING',
+            init() {
+                this.initThree();
+                this.startClock();
+                this.log("System initialized. Graphics Engine: ONLINE.");
+            },
+            log(msg) {
+                const consoleEl = document.getElementById('console-log');
+                const line = document.createElement('div');
+                line.innerHTML = `> <span class="text-cyan-200">${new Date().toLocaleTimeString('en-US', { hour12: false })}.<span>${Math.floor(Math.random() * 999)}</span></span> : ${msg}`;
+                consoleEl.appendChild(line);
+                if (consoleEl.children.length > 6) consoleEl.removeChild(consoleEl.firstChild);
+            },
+            // --- THREE.JS --- //
+            initThree() {
+                const container = document.getElementById('three-container');
+                const scene = new THREE.Scene();
+                // Add subtle fog for depth
+                scene.fog = new THREE.FogExp2(0x030305, 0.02);
+
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+                // Canvas Styling
+                const canvas = renderer.domElement;
+                canvas.style.position = 'fixed';
+                canvas.style.top = '0';
+                canvas.style.left = '0';
+                canvas.style.zIndex = '-1';
+                container.appendChild(canvas);
+
+                // --- PARTICLES SPHERE --- //
+                const geometry = new THREE.BufferGeometry();
+                const count = 1200;
+                const positions = new Float32Array(count * 3);
+
+                for (let i = 0; i < count; i++) {
+                    const r = 5 + Math.random() * 2; // Radius distribution
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+
+                    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                    positions[i * 3 + 2] = r * Math.cos(phi);
+                }
+
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const material = new THREE.PointsMaterial({
+                    color: 0x00f3ff,
+                    size: 0.03,
+                    transparent: true,
+                    opacity: 0.6
+                });
+
+                const particles = new THREE.Points(geometry, material);
+                scene.add(particles);
+
+                // --- CORE GEOMETRY --- //
+                const coreGeo = new THREE.IcosahedronGeometry(1.5, 0); // Reduced size
+                const coreMat = new THREE.MeshBasicMaterial({
+                    color: 0x00f3ff,
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.15
+                });
+                const core = new THREE.Mesh(coreGeo, coreMat);
+                core.position.y = 0.8; // Move up to match HTML ring
+                scene.add(core);
+
+                camera.position.z = 12;
+
+                // Mouse interaction
+                let mouseX = 0, mouseY = 0;
+                let targetX = 0, targetY = 0;
+
+                document.addEventListener('mousemove', (e) => {
+                    mouseX = (e.clientX - window.innerWidth / 2) * 0.001;
+                    mouseY = (e.clientY - window.innerHeight / 2) * 0.001;
+                });
+
+                // Window Resize
+                window.addEventListener('resize', () => {
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                // Animation Loop
+                const animate = () => {
+                    requestAnimationFrame(animate);
+
+                    targetX = mouseX * 2;
+                    targetY = mouseY * 2;
+
+                    particles.rotation.y += 0.001;
+                    particles.rotation.x += (targetY - particles.rotation.x) * 0.05;
+                    particles.rotation.y += (targetX - particles.rotation.y) * 0.05;
+
+                    core.rotation.x -= 0.002;
+                    core.rotation.y -= 0.002;
+
+                    // Breathing effect
+                    const time = Date.now() * 0.001;
+                    const scale = 1 + Math.sin(time) * 0.05;
+                    core.scale.set(scale, scale, scale);
+
+                    renderer.render(scene, camera);
+                };
+
+                this.three = { scene, camera, renderer, particles, core };
+                animate();
+            },
+            // --- NAVIGATION --- //
+            transitionToDashboard() {
+                gsap.to('#landing-view', { y: '-100%', duration: 1.2, ease: 'power4.inOut' });
+                gsap.to('#dashboard-view', { y: '0%', duration: 1.2, ease: 'power4.inOut' });
+
+                // Camera Move
+                gsap.to(this.three.camera.position, { z: 8, duration: 2, ease: 'power2.inOut' });
+                gsap.to(this.three.particles.material, { color: 0x0055ff, duration: 2 });
+
+                this.log("Dashboard interface loaded. User authenticated.");
+            },
+            exitDashboard() {
+                gsap.to('#landing-view', { y: '0%', duration: 1.2, ease: 'power4.inOut' });
+                gsap.to('#dashboard-view', { y: '100%', duration: 1.2, ease: 'power4.inOut' });
+
+                // Camera Reset
+                gsap.to(this.three.camera.position, { z: 12, duration: 2, ease: 'power2.inOut' });
+                gsap.to(this.three.particles.material, { color: 0x00f3ff, duration: 2 });
+
+                this.log("Session terminated. Standby mode active.");
+            },
+            // --- SPECIES SYMPTOM MAPPING --- //
+            speciesSymptoms: {
+                'Dog': ['Vomiting', 'Diarrhea', 'Appetite_Loss', 'Lethargy', 'Dehydration', 'Coughing', 'Eye_Discharge', 'Nasal_Discharge', 'Seizures', 'Tremors', 'Uncoordinated', 'Aggression', 'Excess_Saliva', 'Red_Urine', 'Resp_Distress', 'Weight_Loss', 'Pale_Gums', 'Stiff_Joints', 'Fever_Chills'],
+                'Cat': ['Vomiting', 'Diarrhea', 'Appetite_Loss', 'Lethargy', 'Dehydration', 'Sneezing', 'Eye_Discharge', 'Nasal_Discharge', 'Straining_Urinate', 'Red_Urine', 'Aggression', 'Coughing', 'Weight_Loss', 'Pale_Gums'],
+                'Cow': ['Swelling', 'Appetite_Loss', 'Lethargy', 'Fever_Chills', 'Lameness', 'Excess_Saliva', 'Blisters', 'Tremors', 'Uncoordinated', 'Bloat_Distension', 'Resp_Distress', 'Restlessness', 'Jaundice', 'Pale_Gums', 'Skin_Lesions', 'Hair_Loss'],
+                'Horse': ['Coughing', 'Nasal_Discharge', 'Swollen_Lymph_Nodes', 'Lethargy', 'Appetite_Loss', 'Rolling', 'Sweating', 'Restlessness', 'Bloat_Distension', 'Lameness', 'Stiff_Joints', 'Tremors', 'Excess_Saliva', 'Resp_Distress', 'Pale_Gums', 'Weight_Loss', 'Skin_Lesions'],
+                'Pig': ['Skin_Lesions', 'Fever_Chills', 'Lameness', 'Lethargy', 'Vomiting', 'Diarrhea', 'Appetite_Loss', 'Swelling', 'Blisters', 'Excess_Saliva'],
+                'Sheep': ['Swelling', 'Appetite_Loss', 'Lethargy', 'Fever_Chills', 'Lameness', 'Excess_Saliva', 'Blisters', 'Bloat_Distension', 'Resp_Distress', 'Restlessness', 'Skin_Lesions', 'Hair_Loss'],
+                'Goat': ['Swelling', 'Appetite_Loss', 'Lethargy', 'Fever_Chills', 'Lameness', 'Excess_Saliva', 'Blisters', 'Bloat_Distension', 'Resp_Distress', 'Restlessness', 'Skin_Lesions', 'Hair_Loss']
+            },
+
+            updateSymptoms() {
+                const species = document.getElementById('species').value;
+                const symptomsDiv = document.getElementById('symptoms-grid');
+                const allowed = this.speciesSymptoms[species] || [];
+
+                // Get all labels
+                const labels = symptomsDiv.querySelectorAll('label');
+
+                labels.forEach(lbl => {
+                    const input = lbl.querySelector('input');
+                    const val = input.value;
+
+                    if (allowed.includes(val)) {
+                        lbl.style.display = 'flex';
+                        // Add a tiny animation or highlight
+                        lbl.style.opacity = '1';
+                    } else {
+                        lbl.style.display = 'none';
+                        input.checked = false; // Uncheck hidden ones
+                    }
+                });
+
+                this.log(`UI updated: Showing ${allowed.length} clinical signs for ${species}.`);
+            },
+
+            // --- INFERENCE LOGIC (CONNECTED TO API) --- //
+            async runInference() {
+                this.log("Initiating inference protocol...");
+
+                // Collect Inputs
+                const species = document.getElementById('species').value;
+                const temp = parseFloat(document.getElementById('temp').value);
+                const hr = parseFloat(document.getElementById('hr').value);
+                const resp = parseFloat(document.getElementById('resp').value);
+                const activity = parseFloat(document.getElementById('activity').value);
+
+                // Collect Symptoms
+                const checkboxes = document.querySelectorAll('input[name="sym"]:checked');
+                const symptoms = Array.from(checkboxes).map(cb => cb.value);
+
+                // Validation
+                if ([temp, hr, resp, activity].some(v => isNaN(v))) {
+                    this.log("ERROR: Invalid input vectors detected.");
+                    return;
+                }
+
+                // Simulate processing delay visuals
+                const btn = document.querySelector('button[onclick="app.runInference()"]');
+                const origText = btn.innerText;
+                btn.innerText = "PROCESSING...";
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                // Visual Spin (Three.js)
+                gsap.to(this.three.core.scale, { x: 0.1, y: 0.1, z: 0.1, duration: 0.5, yoyo: true, repeat: 3 });
+
+                try {
+                    // REAL Backend Call
+                    this.log(`Streaming Vitals + Symptoms [${symptoms.length}]...`);
+
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            species: species,
+                            temp: temp,
+                            hr: hr,
+                            resp: resp,
+                            activity: activity,
+                            symptoms: symptoms
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        // Success: Show the real AI prediction
+                        this.updateUI(data.prediction, data.confidence, data.reasoning);
+                        this.log(`Inference complete. Diagnosis: ${data.prediction}`);
+                    } else {
+                        // Backend Error
+                        this.log(`Diagnostic Error: ${data.message}`);
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    this.log("CRITICAL FAILURE: Neural Node Offline.");
+                    this.log("Ensure 'app.py' server is running.");
+                } finally {
+                    // Reset Button
+                    btn.innerText = origText;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            },
+
+            updateUI(result, confidence, reasoning) {
+                const resText = document.getElementById('result-text');
+                const confVal = document.getElementById('conf-val');
+                const threatVal = document.getElementById('threat-val');
+                const sysMsg = document.getElementById('system-msg');
+                const alertBg = document.getElementById('alert-bg');
+
+                // Ensure confidence is a string with %
+                const confString = String(confidence).includes('%') ? confidence : `${confidence}`;
+
+                resText.innerText = result;
+                confVal.innerText = confString;
+
+                // Show Reasoning
+                sysMsg.innerText = `// ${reasoning || "ANALYSIS COMPLETE"}`;
+
+                // Treat 'HEALTHY' or 'NORMAL' as Good. Everything else is Bad.
+                const isHealthy = ['HEALTHY', 'NORMAL', 'OK'].some(w => result.toUpperCase().includes(w));
+
+                if (isHealthy) {
+                    resText.className = "font-sync text-2xl md:text-3xl font-bold italic text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] break-words leading-tight";
+                    threatVal.innerText = "LOW";
+                    threatVal.className = "font-mono text-xl text-green-400";
+                    alertBg.style.opacity = "0";
+
+                    gsap.to(this.three.core.material.color, { r: 0, g: 1, b: 0.2, duration: 0.5 });
+                } else {
+                    resText.className = "font-sync text-2xl md:text-3xl font-bold italic text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)] break-words leading-tight";
+                    threatVal.innerText = "CRITICAL";
+                    threatVal.className = "font-mono text-xl text-red-500 animate-pulse";
+                    alertBg.style.opacity = "1";
+
+                    gsap.to(this.three.core.material.color, { r: 1, g: 0, b: 0, duration: 0.5 });
+                }
+            },
+
+            startClock() {
+                setInterval(() => {
+                    // Optional background mechanic
+                }, 1000);
+            }
+        };
+
+        // Boot
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+            app.updateSymptoms(); // Run once on load to filter initial view (Dog)
+        });
+
+    </script>
+</body>
+
+</html>
