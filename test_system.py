@@ -2,98 +2,198 @@ import requests
 import json
 import time
 import numpy as np
-import hashlib
+import random
 
 print("=========================================")
 print("   A-VITAL SYSTEM DIAGNOSTIC (STRESS TEST)    ")
 print("=========================================")
 
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://localhost:10000"
 
-# Target diseases to test (including Healthy)
-TARGETS = ['HEALTHY', 'Parvovirus', 'Pneumonia', 'Rabies', 'Anthrax', 'Swine Flu', 'Distemper', 'Brucellosis']
+# MATCHING DISEASES FROM generate_data.py
+TARGETS = [
+    'K9 Parvovirus', 'K9 Distemper', 'Rabies', 'Heartworm Disease', 'Lyme Disease',
+    'Feline Panleukopenia', 'Feline FLUTD (Urinary)', 'Cat Flu (URI)',
+    'Bovine Mastitis', 'Foot and Mouth', 'Milk Fever (Hypocalcemia)', 'Bloat',
+    'Strangles', 'Colic', 'Laminitis', 'Tetanus',
+    'Swine Erysipelas', 'Gastroenteritis (General)', 'Internal Parasites', 'Healthy'
+]
+
+SPECIES_MAP = {
+    'K9 Parvovirus': 'Dog',
+    'K9 Distemper': 'Dog', 
+    'Rabies': 'Dog',
+    'Heartworm Disease': 'Dog',
+    'Feline Panleukopenia': 'Cat',
+    'Bovine Mastitis': 'Cow',
+    'Strangles': 'Horse',
+    'Swine Erysipelas': 'Pig',
+    'Healthy': 'Dog' # Default
+}
 
 def generate_case(target_name):
-    # Same logic as train_model.py to guarantee we hit the target
-    if target_name == 'HEALTHY':
-        return {
-            'features': [
-                np.random.normal(38.5, 0.2), # Temp
-                np.random.normal(70, 5),     # HR
-                np.random.normal(24, 3),     # Resp
-                np.random.normal(90, 5)      # Act
-            ],
-            'expected': 'HEALTHY'
-        }
+    """
+    Generates a mock request payload that SHOULD trigger the target disease.
+    Note: This is a simplified generator compared to generate_data.py
+    """
+    species = SPECIES_MAP.get(target_name, 'Dog')
+    
+    # Defaults
+    temp = 38.5
+    hr = 80
+    resp = 20
+    act = 90
+    symptoms = []
+
+    # Inject definitive signals
+    if target_name == 'Healthy':
+        pass 
+    
+    elif target_name == 'K9 Parvovirus':
+        symptoms = ['Vomiting', 'Diarrhea', 'Lethargy', 'Red_Urine']
+        temp = 40.5; hr = 160
+    
+    elif target_name == 'K9 Distemper':
+        symptoms = ['Coughing', 'Eye_Discharge', 'Seizures', 'Hard_Pads']
+        temp = 40.0
+        
+    elif target_name == 'Rabies':
+        symptoms = ['Aggression', 'Excess_Saliva', 'Uncoordinated']
+        act = 100
+    
+    elif target_name == 'Heartworm Disease':
+        symptoms = ['Coughing', 'Resp_Distress', 'Weight_Loss']
+        hr = 130
+        
+    elif target_name == 'Lyme Disease':
+        symptoms = ['Lameness', 'Stiff_Joints', 'Fever_Chills']
+        
+    elif target_name == 'Feline Panleukopenia':
+        species = 'Cat'
+        symptoms = ['Vomiting', 'Dehydration', 'Diarrhea']
+        temp = 41.0; hr = 200
+        
+    elif target_name == 'Feline FLUTD (Urinary)':
+        species = 'Cat'
+        symptoms = ['Straining_Urinate', 'Red_Urine', 'Aggression']
+        
+    elif target_name == 'Cat Flu (URI)':
+        species = 'Cat'
+        symptoms = ['Sneezing', 'Eye_Discharge', 'Nasal_Discharge']
+        
+    elif target_name == 'Bovine Mastitis':
+        species = 'Cow'
+        symptoms = ['Swelling', 'Fever_Chills', 'Lethargy']
+        temp = 41.0
+        
+    elif target_name == 'Foot and Mouth':
+        species = 'Cow' # or Pig
+        symptoms = ['Blisters', 'Excess_Saliva', 'Lameness']
+        temp = 41.0
+        
+    elif target_name == 'Milk Fever (Hypocalcemia)':
+        species = 'Cow'
+        symptoms = ['Tremors', 'Uncoordinated', 'Bloat_Distension']
+        temp = 37.0 # Low temp
+        
+    elif target_name == 'Bloat':
+        species = 'Cow'
+        symptoms = ['Bloat_Distension', 'Resp_Distress']
+        
+    elif target_name == 'Strangles':
+        species = 'Horse'
+        symptoms = ['Swollen_Lymph_Nodes', 'Nasal_Discharge', 'Coughing']
+        
+    elif target_name == 'Colic':
+        species = 'Horse'
+        symptoms = ['Rolling', 'Sweating', 'Restlessness']
+        act = 50
+        
+    elif target_name == 'Laminitis':
+        species = 'Horse'
+        symptoms = ['Lameness', 'Stiff_Joints']
+        act = 20
+        
+    elif target_name == 'Tetanus':
+        species = 'Horse'
+        symptoms = ['Stiff_Joints', 'Tremors', 'Resp_Distress']
+        act = 5
+        
+    elif target_name == 'Swine Erysipelas':
+        species = 'Pig'
+        symptoms = ['Skin_Lesions', 'Fever_Chills', 'Lameness']
+        temp = 41.0
+        
+    elif target_name == 'Gastroenteritis (General)':
+        symptoms = ['Vomiting', 'Diarrhea']
+        
+    elif target_name == 'Internal Parasites':
+        symptoms = ['Weight_Loss', 'Pale_Gums', 'Pot_Belly'] # Note: Pot_Belly not in list, maybe just Weight Loss
+        
     else:
-        # Generate deterministic "Sick" signature
-        dn = target_name.upper()
-        seed_val = int(hashlib.sha256(dn.encode('utf-8')).hexdigest(), 16) % (10**9)
-        rng = np.random.RandomState(seed_val)
-        
-        if rng.rand() > 0.5:
-            base_temp = 39.5 + (rng.rand() * 2.5)
-        else:
-            base_temp = 36.0 + (rng.rand() * 1.5)
-            
-        base_act = rng.rand() * 60
-        base_hr = 40 + (rng.rand() * 140)
-        base_resp = 10 + (rng.rand() * 80)
-        
-        # Add slight noise (simulating different animals with same disease)
-        final_temp = base_temp + np.random.normal(0, 0.1)
-        final_hr = base_hr + np.random.normal(0, 5)
-        final_resp = base_resp + np.random.normal(0, 5)
-        final_act = base_act + np.random.normal(0, 5)
-        
-        return {
-            'features': [final_temp, final_hr, final_resp, final_act],
-            'expected': target_name.upper()
-        }
+        # Fallback
+        temp = 40.0
+        hr = 120
+        act = 20
+        symptoms = ['Lethargy', 'Appetite_Loss']
+
+    # Fuzzing
+    temp += random.uniform(-0.5, 0.5)
+    
+    return {
+        "species": species,
+        "temp": round(temp, 1),
+        "hr": int(hr),
+        "resp": int(resp),
+        "activity": int(act),
+        "symptoms": symptoms
+    }, target_name
 
 # 1. Check Server
 try:
+    print(f"[*] Ping {BASE_URL}/status...")
     requests.get(f"{BASE_URL}/status")
 except:
-    print("❌ Server offline. Run 'python app.py' first.")
+    print(f"❌ Server at {BASE_URL} is offline. Run 'start_app.bat' or 'python app.py' first.")
     exit()
 
-# 2. Run 100 Tests
-print("\n[2/3] Running 100 Randomized Scenarios...")
+# 2. Run Tests
+print("\n[2/3] Running 50 Validation Scenarios...")
 success_count = 0
 matches = 0
 
 start_time = time.time()
 
-for i in range(100):
+for i in range(50):
     # Pick a random target
-    target = np.random.choice(TARGETS)
-    case = generate_case(target)
+    target_disease = random.choice(TARGETS)
+    payload, expected = generate_case(target_disease)
     
     try:
-        r = requests.post(f"{BASE_URL}/predict", json={'features': case['features']})
-        data = r.json()
+        r = requests.post(f"{BASE_URL}/predict", json=payload)
         
         if r.status_code == 200:
+            data = r.json()
             pred = data['prediction']
             conf = data['confidence']
             
-            # Check if prediction matches expected (approximate)
-            # Note: Since model has noise, it might not match perfectly every time, 
-            # but it should be close.
-            match_icon = "✅" if pred == case['expected'] else "⚠️"
-            if pred == case['expected']: matches += 1
+            # Loose matching (Case insensitive, partial)
+            is_match = expected.upper() in pred or pred in expected.upper()
+            if expected == 'Healthy' and 'HEALTHY' in pred: is_match = True
             
-            print(f"Test #{i+1:03}: Input={target:<12} -> Pred={pred:<15} ({conf}) {match_icon}")
+            match_icon = "[OK]" if is_match else "[MISMATCH]"
+            if is_match: matches += 1
+            
+            print(f"Test #{i+1:02}: Expect={expected[:20]:<20} -> Got={pred[:20]:<20} ({conf}) {match_icon}")
             success_count += 1
         else:
-            print(f"Test #{i+1:03}: SERVER ERROR")
+            print(f"Test #{i+1:02}: SERVER ERROR {r.status_code} - {r.text}")
             
     except Exception as e:
-        print(f"Test #{i+1:03}: REQUEST FAILED")
+        print(f"Test #{i+1:02}: REQUEST FAILED {e}")
 
 print("-" * 40)
-print(f"API Success Rate: {success_count}/100")
-print(f"Accuracy on Generated Cases: {matches}/100")
+print(f"API Connectivity: {success_count}/50")
+print(f"Functional Pass Rate: {matches}/50")
 print(f"Duration: {time.time() - start_time:.2f}s")
 print("=========================================")

@@ -17,9 +17,9 @@ def generate_enhanced_dataset(num_samples=8000):
         # Musculoskeletal/Derm
         'Lameness', 'Swelling', 'Stiff_Joints', 'Skin_Lesions', 'Hair_Loss', 'Blisters', 'Pustules',
         # Neurological
-        'Seizures', 'Tremors', 'Uncoordinated', 'Aggression',
+        'Seizures', 'Tremors', 'Uncoordinated', 'Aggression', 'Restlessness', 'Rolling', 'Hard_Pads',
         # Head/Face
-        'Eye_Discharge', 'Excess_Saliva', 'Swollen_Lymph_Nodes',
+        'Eye_Discharge', 'Excess_Saliva', 'Swollen_Lymph_Nodes', 'Sweating',
         # Urinary
         'Straining_Urinate', 'Red_Urine'
     ]

@@ -12,6 +12,6 @@ python train_model.py
 
 echo "[3/3] Starting Application Node..."
 echo ""
-echo "   >>> OPEN YOUR BROWSER TO: http://localhost:5000 <<<"
+echo "   >>> OPEN YOUR BROWSER TO: http://localhost:10000 <<<"
 echo ""
 python app.py

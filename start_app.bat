@@ -29,7 +29,7 @@ timeout /t 5 /nobreak >nul
 
 echo.
 echo    ^> LAUNCHING DASHBOARD...
-start http://localhost:5000
+start http://localhost:10000
 
 echo.
 echo ==================================================
