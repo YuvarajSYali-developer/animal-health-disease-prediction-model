@@ -159,7 +159,7 @@ def generate_enhanced_dataset(num_samples=8000):
         weights = [1] * len(keys)
         # Healthy still needs to be baseline
         healthy_idx = keys.index('Healthy')
-        weights[healthy_idx] = 4 # High baseline to avoid false positives
+        weights[healthy_idx] = 2 # Baseline, but not too dominant
         
         disease_name = random.choices(keys, weights=weights, k=1)[0]
         info = diseases[disease_name]
@@ -217,11 +217,34 @@ def generate_enhanced_dataset(num_samples=8000):
         # 4. Generate Symptoms
         for sym in all_symptoms:
             row[sym] = 0
-            
+
         disease_symptoms = info.get('symptoms', {})
-        for sym, prob in disease_symptoms.items():
+        signature_syms = [sym for sym, prob in disease_symptoms.items() if prob >= 0.9]
+
+        for sym in all_symptoms:
+            if disease_name == 'Healthy':
+                continue
+
+            if sym in disease_symptoms:
+                base_prob = disease_symptoms[sym]
+                if sym in signature_syms:
+                    prob = 0.98
+                else:
+                    prob = base_prob
+                if is_early:
+                    prob *= 0.6
+            else:
+                prob = 0.01 if not is_early else 0.005
+
             if random.random() < prob:
-                if sym in row: # Safety check
+                row[sym] = 1
+
+        # Ensure at least two symptoms for non-healthy cases
+        if disease_name != 'Healthy':
+            symptom_count = sum(row[sym] for sym in all_symptoms)
+            if symptom_count < 2:
+                fallback_syms = signature_syms or list(disease_symptoms.keys())
+                for sym in fallback_syms[:2]:
                     row[sym] = 1
         
         # 5. Logical Inconsistencies Fix (Sanity Check)

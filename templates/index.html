@@ -253,6 +253,23 @@
             text-transform: uppercase;
         }
 
+        .helper-text {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1.4;
+        }
+
+        .helper-card {
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            background: rgba(0, 243, 255, 0.04);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+        }
+
+        .input-cyber::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+        }
+
         .input-cyber {
             background: transparent;
             border: none;
@@ -375,15 +392,23 @@
                     <div class="glass-panel p-6 flex-1 flex flex-col overflow-y-auto custom-scroll">
                         <div>
                             <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-                                <h3 class="font-sync text-lg text-cyan-400">INPUT Vectors</h3>
+                                <h3 class="font-sync text-lg text-cyan-400">ANIMAL INPUTS</h3>
                                 <div class="w-2 h-2 bg-cyan-400 animate-pulse"></div>
+                            </div>
+                            <div class="helper-card mb-6">
+                                <div class="font-mono text-[10px] text-cyan-300 mb-2">FARMER QUICK GUIDE</div>
+                                <div class="helper-text">
+                                    1. Select the animal and enter vitals.
+                                    2. Tick observed symptoms.
+                                    3. Press <span class="text-cyan-300">PREDICT DISEASE</span>.
+                                </div>
                             </div>
 
                             <form id="prediction-form" class="space-y-6">
 
                                 <!-- SPECIES CLICKER -->
                                 <div class="input-group">
-                                    <label>Subject Species</label>
+                                    <label>Animal Type</label>
                                     <select id="species" class="input-cyber bg-black/50"
                                         onchange="app.updateSymptoms()">
                                         <option value="Dog">CANINE (Dog)</option>
@@ -575,7 +600,7 @@
                         </div>
 
                         <button onclick="app.runInference()" class="btn-cyber w-full mt-6 text-sm">
-                            Run Diagnostics
+                            Predict Disease
                         </button>
 
                         <!-- Panel Corners decorations -->
@@ -622,6 +647,14 @@
                         <div id="error-banner"
                             class="hidden mb-4 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-200">
                             // SYSTEM: ERROR STATE
+                        </div>
+
+                        <div class="helper-card mb-6">
+                            <div class="font-mono text-[10px] text-cyan-300 mb-2">RESULTS GUIDE</div>
+                            <div class="helper-text">
+                                Confidence above 80% means the pattern strongly matches the symptoms.
+                                If confidence is low, re-check vitals or add more observed symptoms.
+                            </div>
                         </div>
 
                         <div class="space-y-12 relative z-10">
@@ -937,7 +970,7 @@
                 errorBanner.classList.add('hidden');
 
                 // Ensure confidence is a string with %
-                const confString = String(confidence).includes('%') - confidence : `${confidence}`;
+                const confString = String(confidence).includes('%') ? confidence : `${confidence}%`;
 
                 resText.innerText = result;
                 confVal.innerText = confString;
