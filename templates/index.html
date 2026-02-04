@@ -619,6 +619,11 @@
                                 ]</button>
                         </div>
 
+                        <div id="error-banner"
+                            class="hidden mb-4 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-[10px] font-mono text-red-200">
+                            // SYSTEM: ERROR STATE
+                        </div>
+
                         <div class="space-y-12 relative z-10">
                             <div class="text-center py-4 min-h-[140px] flex flex-col justify-center">
                                 <div class="font-mono text-xs text-white/30 tracking-widest mb-2">DIAGNOSTIC RESULT
@@ -636,6 +641,12 @@
                                 <div class="flex justify-between items-end border-b border-white/5 pb-2">
                                     <span class="font-mono text-xs text-cyan-400">THREAT_VECTOR</span>
                                     <span id="threat-val" class="font-mono text-xl text-white">--</span>
+                                </div>
+                                <div class="border-b border-white/5 pb-2">
+                                    <div class="font-mono text-xs text-cyan-400 mb-2">TOP_PREDICTIONS</div>
+                                    <ul id="top-preds" class="space-y-1 text-[10px] font-mono text-white/70">
+                                        <li>--</li>
+                                    </ul>
                                 </div>
                             </div>
 
@@ -859,6 +870,7 @@
 
                 // Validation
                 if ([temp, hr, resp, activity].some(v => isNaN(v))) {
+                    this.showError("Invalid input vectors detected. Check vitals.");
                     this.log("ERROR: Invalid input vectors detected.");
                     return;
                 }
@@ -893,15 +905,17 @@
 
                     if (data.status === 'success') {
                         // Success: Show the real AI prediction
-                        this.updateUI(data.prediction, data.confidence, data.reasoning);
+                        this.updateUI(data.prediction, data.confidence, data.reasoning, data.top_predictions || []);
                         this.log(`Inference complete. Diagnosis: ${data.prediction}`);
                     } else {
                         // Backend Error
+                        this.showError(data.message || "Unknown backend error.");
                         this.log(`Diagnostic Error: ${data.message}`);
                     }
 
                 } catch (e) {
                     console.error(e);
+                    this.showError("Neural Node Offline. Check the backend service.");
                     this.log("CRITICAL FAILURE: Neural Node Offline.");
                     this.log("Ensure 'app.py' server is running.");
                 } finally {
@@ -911,12 +925,16 @@
                 }
             },
 
-            updateUI(result, confidence, reasoning) {
+            updateUI(result, confidence, reasoning, topPredictions) {
                 const resText = document.getElementById('result-text');
                 const confVal = document.getElementById('conf-val');
                 const threatVal = document.getElementById('threat-val');
                 const sysMsg = document.getElementById('system-msg');
                 const alertBg = document.getElementById('alert-bg');
+                const topPreds = document.getElementById('top-preds');
+                const errorBanner = document.getElementById('error-banner');
+
+                errorBanner.classList.add('hidden');
 
                 // Ensure confidence is a string with %
                 const confString = String(confidence).includes('%') ? confidence : `${confidence}`;
@@ -926,6 +944,18 @@
 
                 // Show Reasoning
                 sysMsg.innerText = `// ${reasoning || "ANALYSIS COMPLETE"}`;
+                topPreds.innerHTML = '';
+                if (topPredictions.length) {
+                    topPredictions.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = `${item.disease} — ${item.confidence}`;
+                        topPreds.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = "--";
+                    topPreds.appendChild(li);
+                }
 
                 // Treat 'HEALTHY' or 'NORMAL' as Good. Everything else is Bad.
                 const isHealthy = ['HEALTHY', 'NORMAL', 'OK'].some(w => result.toUpperCase().includes(w));
@@ -945,6 +975,12 @@
 
                     gsap.to(this.three.core.material.color, { r: 1, g: 0, b: 0, duration: 0.5 });
                 }
+            },
+
+            showError(message) {
+                const errorBanner = document.getElementById('error-banner');
+                errorBanner.textContent = `// SYSTEM: ${message}`;
+                errorBanner.classList.remove('hidden');
             },
 
             startClock() {

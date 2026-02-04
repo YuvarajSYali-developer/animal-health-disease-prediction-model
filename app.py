@@ -1,3 +1,4 @@
+import json
 import os
 import joblib
 import numpy as np
@@ -12,14 +13,20 @@ CORS(app)
 model = None
 le = None
 model_features = None
+metrics = None
 
 def load_system():
-    global model, le, model_features
+    global model, le, model_features, metrics
     try:
         print("[*] Loading Neural Network Weights...")
         model = joblib.load('animal_model.pkl')
         le = joblib.load('label_encoder.pkl')
         model_features = joblib.load('model_features.pkl')
+        try:
+            with open('training_metrics.json', 'r', encoding='utf-8') as handle:
+                metrics = json.load(handle)
+        except Exception:
+            metrics = None
         print(f"[+] System Online. Features aligned: {len(model_features)}")
         return True
     except Exception as e:
@@ -40,7 +47,8 @@ def status():
     return jsonify({
         'status': 'online', 
         'model_loaded': model is not None,
-        'version': '4.1.0-Enhanced'
+        'version': '4.2.0-Enhanced',
+        'metrics': metrics or {}
     })
 
 @app.route('/predict', methods=['POST'])
@@ -51,6 +59,8 @@ def predict():
 
     try:
         data = request.json
+        if data is None:
+            return jsonify({'status': 'error', 'message': 'Missing JSON body'}), 400
         
         # User Input: 
         # {
@@ -66,19 +76,26 @@ def predict():
         input_data = {col: 0 for col in model_features}
         
         # 2. Fill Vitals
-        input_data['Body_Temperature'] = float(data.get('temp', 38.0))
-        input_data['Heart_Rate'] = int(data.get('hr', 80))
-        input_data['Respiratory_Rate'] = int(data.get('resp', 20))
-        input_data['Activity_Level'] = int(data.get('activity', 100))
+        try:
+            input_data['Body_Temperature'] = float(data.get('temp', 38.0))
+            input_data['Heart_Rate'] = int(data.get('hr', 80))
+            input_data['Respiratory_Rate'] = int(data.get('resp', 20))
+            input_data['Activity_Level'] = int(data.get('activity', 100))
+        except (TypeError, ValueError):
+            return jsonify({'status': 'error', 'message': 'Vitals must be numeric values'}), 400
         
         # 3. Fill One-Hot Species
         species = data.get('species', 'Dog')
+        if not isinstance(species, str):
+            return jsonify({'status': 'error', 'message': 'Species must be a string'}), 400
         species_col = f"Animal_Type_{species}"
         if species_col in input_data:
             input_data[species_col] = 1
         
         # 4. Fill Symptoms
         active_symptoms = data.get('symptoms', [])
+        if not isinstance(active_symptoms, list):
+            return jsonify({'status': 'error', 'message': 'Symptoms must be a list'}), 400
         for sym in active_symptoms:
             if sym in input_data:
                 input_data[sym] = 1
@@ -96,6 +113,13 @@ def predict():
         # Top 1
         top_pred_name = le.inverse_transform([top_indices[0]])[0]
         top_conf = confidence_array[top_indices[0]] * 100
+
+        top_predictions = []
+        for idx in top_indices[:3]:
+            top_predictions.append({
+                "disease": le.inverse_transform([idx])[0],
+                "confidence": f"{confidence_array[idx] * 100:.1f}%"
+            })
         
         # Logic: Find the first NON-HEALTHY prediction if symptoms are present
         final_prediction = top_pred_name
@@ -148,7 +172,8 @@ def predict():
             'status': 'success',
             'prediction': str(final_prediction).upper(),
             'confidence': f"{final_conf:.1f}%",
-            'reasoning': why_text
+            'reasoning': why_text,
+            'top_predictions': top_predictions
         })
 
     except Exception as e:

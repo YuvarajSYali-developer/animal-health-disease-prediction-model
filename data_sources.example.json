@@ -1,0 +1,23 @@
+[
+  {
+    "name": "public-vet-dataset-1",
+    "url": "https://example.com/animal_disease_dataset.csv",
+    "column_map": {
+      "Species": "Animal_Type",
+      "Diagnosis": "Disease_Prediction",
+      "TempC": "Body_Temperature",
+      "HR": "Heart_Rate",
+      "RR": "Respiratory_Rate",
+      "Activity": "Activity_Level"
+    },
+    "symptom_columns": [
+      "Vomiting",
+      "Diarrhea",
+      "Coughing",
+      "Lethargy"
+    ],
+    "defaults": {
+      "Activity_Level": 80
+    }
+  }
+]
