@@ -15,6 +15,8 @@ model = None
 le = None
 model_features = None
 metrics = None
+APP_VERSION = "4.2.1"
+GIT_COMMIT = os.environ.get("RENDER_GIT_COMMIT")
 
 def load_system():
     global model, le, model_features, metrics
@@ -28,7 +30,8 @@ def load_system():
                 metrics = json.load(handle)
         except Exception:
             metrics = None
-        print(f"[+] System Online. Features aligned: {len(model_features)}")
+        commit_note = f" (commit {GIT_COMMIT[:7]})" if GIT_COMMIT else ""
+        print(f"[+] System Online. Features aligned: {len(model_features)}{commit_note}")
         return True
     except Exception as e:
         print(f"[!] CRITICAL ERROR: {e}")
@@ -48,7 +51,8 @@ def status():
     return jsonify({
         'status': 'online', 
         'model_loaded': model is not None,
-        'version': '4.2.0-Enhanced',
+        'version': APP_VERSION,
+        'commit': GIT_COMMIT,
         'metrics': metrics or {}
     })
 
@@ -102,10 +106,11 @@ def predict():
                 input_data[sym] = 1
                 
         # 5. Create DataFrame for Prediction (ensure correct column order)
-        df_input = pd.DataFrame([input_data], columns=model_features)
+        feature_list = list(model_features)
+        df_input = pd.DataFrame([input_data], columns=feature_list)
         
         # 6. Predict (use DMatrix to guarantee feature names are present)
-        dmatrix = xgb.DMatrix(df_input, feature_names=list(model_features))
+        dmatrix = xgb.DMatrix(df_input, feature_names=feature_list)
         confidence_array = model.get_booster().predict(dmatrix)[0]
         pred_idx = int(np.argmax(confidence_array))
         
