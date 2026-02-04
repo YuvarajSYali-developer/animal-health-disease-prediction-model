@@ -154,7 +154,7 @@ try:
     print(f"[*] Ping {BASE_URL}/status...")
     requests.get(f"{BASE_URL}/status")
 except:
-    print(f"❌ Server at {BASE_URL} is offline. Run 'start_app.bat' or 'python app.py' first.")
+    print(f"[X] Server at {BASE_URL} is offline. Run 'start_app.bat' or 'python app.py' first.")
     exit()
 
 # 2. Run Tests

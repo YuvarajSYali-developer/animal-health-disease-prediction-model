@@ -3,6 +3,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
@@ -100,12 +101,13 @@ def predict():
             if sym in input_data:
                 input_data[sym] = 1
                 
-        # 5. Create DataFrame for Prediction
-        df_input = pd.DataFrame([input_data])
+        # 5. Create DataFrame for Prediction (ensure correct column order)
+        df_input = pd.DataFrame([input_data], columns=model_features)
         
-        # 6. Predict
-        pred_idx = model.predict(df_input)[0]
-        confidence_array = model.predict_proba(df_input)[0]  # Get probability array
+        # 6. Predict (use DMatrix to guarantee feature names are present)
+        dmatrix = xgb.DMatrix(df_input, feature_names=list(model_features))
+        confidence_array = model.get_booster().predict(dmatrix)[0]
+        pred_idx = int(np.argmax(confidence_array))
         
         # Get sorted predictions
         top_indices = np.argsort(confidence_array)[::-1]

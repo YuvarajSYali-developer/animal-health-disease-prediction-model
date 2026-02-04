@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <link
-        href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2-family=Syncopate:wght@400;700&family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
     <style>
         :root {
@@ -399,7 +399,7 @@
                                 <!-- VITALS -->
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="input-group">
-                                        <label>Temp (°C)</label>
+                                        <label>Temp (C)</label>
                                         <input type="number" id="temp" step="0.1" value="38.5" class="input-cyber">
                                     </div>
                                     <div class="input-group">
@@ -651,7 +651,7 @@
                             </div>
 
                             <div class="border-t border-white/5 pt-4">
-                                <div class="font-mono text-[10px] text-cyan-500 mb-2">PREDICTION LOGIC (WHY?):</div>
+                                <div class="font-mono text-[10px] text-cyan-500 mb-2">PREDICTION LOGIC (WHY-):</div>
                                 <p id="system-msg"
                                     class="font-mono text-[10px] leading-relaxed text-left text-white/60">
                                     // AWAITING NEURAL PROCESS EXECUTION
@@ -937,7 +937,7 @@
                 errorBanner.classList.add('hidden');
 
                 // Ensure confidence is a string with %
-                const confString = String(confidence).includes('%') ? confidence : `${confidence}`;
+                const confString = String(confidence).includes('%') - confidence : `${confidence}`;
 
                 resText.innerText = result;
                 confVal.innerText = confString;
@@ -948,7 +948,7 @@
                 if (topPredictions.length) {
                     topPredictions.forEach(item => {
                         const li = document.createElement('li');
-                        li.textContent = `${item.disease} — ${item.confidence}`;
+                        li.textContent = `${item.disease} - ${item.confidence}`;
                         topPreds.appendChild(li);
                     });
                 } else {

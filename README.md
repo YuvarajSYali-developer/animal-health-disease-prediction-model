@@ -58,8 +58,8 @@ This will produce `data/combined_dataset.csv`, which can be passed into `train_m
 
 ## API Endpoints
 
-- `GET /status` — service status and latest training metrics (if available)
-- `POST /predict` — returns prediction, confidence, reasoning, and top 3 predictions
+- `GET /status` - service status and latest training metrics (if available)
+- `POST /predict` - returns prediction, confidence, reasoning, and top 3 predictions
 
 ## Notes
 

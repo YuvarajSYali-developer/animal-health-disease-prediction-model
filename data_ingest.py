@@ -65,7 +65,7 @@ def main():
     output_dir.mkdir(exist_ok=True)
     output_path = output_dir / "combined_dataset.csv"
     combined.to_csv(output_path, index=False)
-    print(f"[✓] Combined dataset saved to {output_path}")
+    print(f"[[OK]] Combined dataset saved to {output_path}")
 
 
 if __name__ == "__main__":
